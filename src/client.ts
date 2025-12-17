@@ -12,6 +12,7 @@ import type {
 	McpServerConfig,
 	Options,
 } from "@anthropic-ai/claude-agent-sdk";
+import type { ProjectManagementProvider } from "./providers/types.js";
 import { bashSecurityHook } from "./security.js";
 
 /**
@@ -47,30 +48,6 @@ const PUPPETEER_TOOLS = [
 ] as const;
 
 /**
- * Linear MCP tools for project management
- */
-const LINEAR_TOOLS = [
-	"mcp__linear__list_teams",
-	"mcp__linear__get_team",
-	"mcp__linear__list_projects",
-	"mcp__linear__get_project",
-	"mcp__linear__create_project",
-	"mcp__linear__update_project",
-	"mcp__linear__list_issues",
-	"mcp__linear__get_issue",
-	"mcp__linear__create_issue",
-	"mcp__linear__update_issue",
-	"mcp__linear__list_my_issues",
-	"mcp__linear__list_comments",
-	"mcp__linear__create_comment",
-	"mcp__linear__list_issue_statuses",
-	"mcp__linear__get_issue_status",
-	"mcp__linear__list_issue_labels",
-	"mcp__linear__list_users",
-	"mcp__linear__get_user",
-] as const;
-
-/**
  * Built-in Claude Code tools
  */
 const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const;
@@ -79,7 +56,7 @@ const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const
  * Creates SDK options for a Claude Agent SDK query.
  *
  * Configures:
- * - MCP servers (Linear, Puppeteer)
+ * - MCP servers (provider + Puppeteer)
  * - Security hooks (bash command validation)
  * - Working directory and permissions
  * - Tool allowlist
@@ -91,6 +68,7 @@ const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const
  *
  * @param projectDir - Directory for the project (used as cwd)
  * @param model - Claude model to use
+ * @param provider - Project management provider to use
  * @returns Options object for SDK query
  *
  * @throws Error if required environment variables are not set
@@ -99,15 +77,21 @@ const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const
  * ```typescript
  * import { query } from "@anthropic-ai/claude-agent-sdk";
  * import { createQueryOptions } from "./client.js";
+ * import { LinearProvider } from "./providers/linear.js";
  *
- * const options = await createQueryOptions("/path/to/project", "claude-opus-4-5-20251101");
+ * const provider = new LinearProvider();
+ * const options = await createQueryOptions("/path/to/project", "claude-opus-4-5-20251101", provider);
  * const result = query({ prompt: "Hello", options });
  * for await (const msg of result) {
  *   console.log(msg);
  * }
  * ```
  */
-export async function createQueryOptions(projectDir: string, model: string): Promise<Options> {
+export async function createQueryOptions(
+	projectDir: string,
+	model: string,
+	provider: ProjectManagementProvider,
+): Promise<Options> {
 	// Validate environment
 	const claudeToken = process.env["CLAUDE_CODE_OAUTH_TOKEN"];
 	if (!claudeToken) {
@@ -117,13 +101,8 @@ export async function createQueryOptions(projectDir: string, model: string): Pro
 		);
 	}
 
-	const linearApiKey = process.env["LINEAR_API_KEY"];
-	if (!linearApiKey) {
-		throw new Error(
-			"LINEAR_API_KEY environment variable not set.\n" +
-				"Get your API key from: https://linear.app/YOUR-TEAM/settings/api",
-		);
-	}
+	// Validate provider environment
+	provider.validateEnvironment();
 
 	// Ensure project directory exists
 	await Bun.$`mkdir -p ${projectDir}`.quiet();
@@ -141,7 +120,7 @@ export async function createQueryOptions(projectDir: string, model: string): Pro
 				"Grep(./**)",
 				"Bash(*)",
 				...PUPPETEER_TOOLS,
-				...LINEAR_TOOLS,
+				...provider.getRequiredTools(),
 			],
 		},
 	};
@@ -153,7 +132,7 @@ export async function createQueryOptions(projectDir: string, model: string): Pro
 	console.log("   - Sandbox enabled (OS-level bash isolation)");
 	console.log(`   - Filesystem restricted to: ${projectDir}`);
 	console.log("   - Bash commands restricted to allowlist (see security.ts)");
-	console.log("   - MCP servers: puppeteer, linear");
+	console.log(`   - MCP servers: puppeteer, ${provider.name}`);
 	console.log();
 
 	// MCP Server Configuration
@@ -163,14 +142,13 @@ export async function createQueryOptions(projectDir: string, model: string): Pro
 			command: "npx",
 			args: ["puppeteer-mcp-server"],
 		},
-		linear: {
-			type: "http",
-			url: "https://mcp.linear.app/mcp",
-			headers: {
-				Authorization: `Bearer ${linearApiKey}`,
-			},
-		},
 	};
+
+	// Add provider's MCP server configuration
+	const providerMcpConfig = provider.getMcpServerConfig();
+	if (providerMcpConfig) {
+		mcpServers[provider.name] = providerMcpConfig;
+	}
 
 	// Security hooks configuration
 	const hooks: Partial<Record<HookEvent, { hooks: HookCallback[] }[]>> = {
@@ -251,7 +229,7 @@ export async function createQueryOptions(projectDir: string, model: string): Pro
 /**
  * Validate that required environment variables are set.
  *
- * @throws Error if CLAUDE_CODE_OAUTH_TOKEN or LINEAR_API_KEY are missing
+ * @throws Error if CLAUDE_CODE_OAUTH_TOKEN is missing
  */
 export function validateEnvironment(): void {
 	if (!process.env["CLAUDE_CODE_OAUTH_TOKEN"]) {
@@ -260,19 +238,12 @@ export function validateEnvironment(): void {
 				"Run 'claude setup-token' after installing the Claude Code CLI.",
 		);
 	}
-
-	if (!process.env["LINEAR_API_KEY"]) {
-		throw new Error(
-			"LINEAR_API_KEY environment variable not set.\n" +
-				"Get your API key from: https://linear.app/YOUR-TEAM/settings/api",
-		);
-	}
 }
 
 /**
  * Export tool lists for external use
  */
-export { PUPPETEER_TOOLS, LINEAR_TOOLS, BUILTIN_TOOLS };
+export { PUPPETEER_TOOLS, BUILTIN_TOOLS };
 
 /**
  * Export types for external use

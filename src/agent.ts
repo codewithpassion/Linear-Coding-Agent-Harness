@@ -13,8 +13,10 @@ import type {
 	SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createQueryOptions } from "./client.js";
-import { isLinearInitialized, printProgressSummary, printSessionHeader } from "./progress.js";
-import { copySpecToProject, getCodingPrompt, getInitializerPrompt } from "./prompts.js";
+import { printSessionHeader } from "./progress.js";
+import { copySpecToProject } from "./prompts.js";
+import { detectAndCreateProvider } from "./providers/factory.js";
+import type { ProjectManagementProvider, ProviderType } from "./providers/types.js";
 
 /**
  * Configuration
@@ -73,6 +75,7 @@ function isResultMessage(msg: SDKMessage): msg is SDKResultMessage {
  * @param prompt - The prompt to send
  * @param projectDir - Project directory path
  * @param model - Claude model to use
+ * @param provider - Project management provider to use
  * @returns Promise resolving to [status, response_text] where status is:
  *          - "continue" if agent should continue working
  *          - "error" if an error occurred
@@ -81,12 +84,13 @@ export async function runAgentSession(
 	prompt: string,
 	projectDir: string,
 	model: string,
+	provider: ProjectManagementProvider,
 ): Promise<AgentSessionResult> {
 	console.log("Sending prompt to Claude Agent SDK...\n");
 
 	try {
 		// Get options for the query
-		const options = await createQueryOptions(projectDir, model);
+		const options = await createQueryOptions(projectDir, model, provider);
 
 		// Create query
 		const result = query({
@@ -170,12 +174,14 @@ export async function runAgentSession(
  * @param projectDir - Directory for the project
  * @param model - Claude model to use
  * @param maxIterations - Maximum number of iterations (undefined for unlimited)
+ * @param providerType - Project management provider type (optional, auto-detected if not specified)
  * @returns Promise that resolves when the agent loop completes
  */
 export async function runAutonomousAgent(
 	projectDir: string,
 	model: string,
 	maxIterations: number | undefined = undefined,
+	providerType?: ProviderType,
 ): Promise<void> {
 	console.log(`\n${"=".repeat(70)}`);
 	console.log("  AUTONOMOUS CODING AGENT DEMO");
@@ -193,23 +199,30 @@ export async function runAutonomousAgent(
 	// Create project directory
 	await Bun.$`mkdir -p ${projectDir}`.quiet();
 
+	// Detect and create provider
+	const provider = await detectAndCreateProvider(projectDir, providerType);
+	provider.validateEnvironment();
+
+	console.log(`Provider: ${provider.name}`);
+	console.log();
+
 	// Check if this is a fresh start or continuation
-	let isFirstRun = !(await isLinearInitialized(projectDir));
+	let isFirstRun = !(await provider.isInitialized(projectDir));
 
 	if (isFirstRun) {
-		console.log("Fresh start - will use initializer agent");
+		console.log(`Fresh start - will use ${provider.name} initializer agent`);
 		console.log();
 		console.log("=".repeat(70));
 		console.log("  NOTE: First session takes 10-20+ minutes!");
-		console.log("  The agent is creating 50 Linear issues and setting up the project.");
+		console.log(`  The agent is creating 50 ${provider.name} issues and setting up the project.`);
 		console.log("  This may appear to hang - it's working. Watch for [Tool: ...] output.");
 		console.log("=".repeat(70));
 		console.log();
 		// Copy the app spec into the project directory
 		await copySpecToProject(projectDir);
 	} else {
-		console.log("Continuing existing project (Linear initialized)");
-		await printProgressSummary(projectDir);
+		console.log(`Continuing existing ${provider.name} project`);
+		await provider.printProgressSummary(projectDir);
 	}
 
 	// Main loop
@@ -231,19 +244,19 @@ export async function runAutonomousAgent(
 		// Choose prompt based on session type
 		let prompt: string;
 		if (isFirstRun) {
-			prompt = await getInitializerPrompt();
+			prompt = await provider.getInitializerPrompt();
 			isFirstRun = false; // Only use initializer once
 		} else {
-			prompt = await getCodingPrompt();
+			prompt = await provider.getCodingPrompt();
 		}
 
 		// Run session
-		const [status, _response] = await runAgentSession(prompt, projectDir, model);
+		const [status, _response] = await runAgentSession(prompt, projectDir, model, provider);
 
 		// Handle status
 		if (status === "continue") {
 			console.log(`\nAgent will auto-continue in ${AUTO_CONTINUE_DELAY_SECONDS}s...`);
-			await printProgressSummary(projectDir);
+			await provider.printProgressSummary(projectDir);
 			await sleep(AUTO_CONTINUE_DELAY_SECONDS * 1000);
 		} else if (status === "error") {
 			console.log("\nSession encountered an error");
@@ -263,7 +276,7 @@ export async function runAutonomousAgent(
 	console.log("  SESSION COMPLETE");
 	console.log("=".repeat(70));
 	console.log(`\nProject directory: ${projectDir}`);
-	await printProgressSummary(projectDir);
+	await provider.printProgressSummary(projectDir);
 
 	// Print instructions
 	console.log(`\n${"-".repeat(70)}`);

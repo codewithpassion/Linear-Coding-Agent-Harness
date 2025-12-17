@@ -15,6 +15,7 @@
 
 import { isAbsolute, resolve } from "node:path";
 import { runAutonomousAgent } from "./agent.js";
+import type { ProviderType } from "./providers/types.js";
 
 /**
  * Configuration interface for command-line arguments
@@ -23,6 +24,7 @@ interface CliArguments {
 	projectDir: string;
 	maxIterations: number | undefined;
 	model: string;
+	provider?: ProviderType;
 }
 
 /**
@@ -102,6 +104,22 @@ export function parseArgs(): CliArguments {
 				}
 				break;
 
+			case "--provider":
+				if (i + 1 < args.length) {
+					const nextArg = args[i + 1];
+					if (!nextArg) {
+						throw new Error(`${arg} requires a value`);
+					}
+					if (!["linear", "beads", "plane"].includes(nextArg)) {
+						throw new Error(`Invalid provider: ${nextArg}. Must be: linear, beads, or plane`);
+					}
+					result.provider = nextArg as ProviderType;
+					i++;
+				} else {
+					throw new Error(`${arg} requires a value`);
+				}
+				break;
+
 			case "--help":
 			// biome-ignore lint/suspicious/noFallthroughSwitchClause: intentional fallthrough for help flags
 			case "-h":
@@ -134,11 +152,18 @@ Options:
                               Relative paths automatically placed in ${CONFIG.GENERATIONS_DIR}/ directory
   --max-iterations, -m <num>  Maximum number of agent iterations (default: unlimited)
   --model <model>             Claude model to use (default: ${CONFIG.DEFAULT_MODEL})
+  --provider <type>           Project management provider: linear, beads, or plane (default: auto-detect or linear)
   --help, -h                  Show this help message
 
 Examples:
-  # Start fresh project
+  # Start fresh project (default: Linear)
   bun run src/index.ts --project-dir ./claude_clone
+
+  # Start with Beads
+  bun run src/index.ts --project-dir ./my_app --provider beads
+
+  # Start with Plane
+  bun run src/index.ts --project-dir ./my_app --provider plane
 
   # Use a specific model
   bun run src/index.ts --project-dir ./claude_clone --model claude-sonnet-4-5-20250929
@@ -146,12 +171,13 @@ Examples:
   # Limit iterations for testing
   bun run src/index.ts --project-dir ./claude_clone --max-iterations 5
 
-  # Continue existing project
+  # Continue existing project (auto-detects provider)
   bun run src/index.ts --project-dir ./claude_clone
 
 Environment Variables:
   CLAUDE_CODE_OAUTH_TOKEN    Claude Code OAuth token (required)
-  LINEAR_API_KEY             Linear API key (required)
+  LINEAR_API_KEY             Linear API key (required if using Linear)
+  PLANE_API_KEY              Plane.so API key (required if using Plane)
 `);
 }
 
@@ -192,14 +218,7 @@ export function validateEnvironment(): void {
 		process.exit(1);
 	}
 
-	// Check for Linear API key
-	if (!process.env["LINEAR_API_KEY"]) {
-		console.error("Error: LINEAR_API_KEY environment variable not set");
-		console.error("\nGet your API key from: https://linear.app/YOUR-TEAM/settings/api");
-		console.error("\nThen set it:");
-		console.error("  export LINEAR_API_KEY='lin_api_xxxxxxxxxxxxx'");
-		process.exit(1);
-	}
+	// Provider-specific validation happens in the provider itself
 }
 
 /**
@@ -217,7 +236,7 @@ export async function main(): Promise<void> {
 		const projectDir = resolveProjectDir(args.projectDir);
 
 		// Run the autonomous agent
-		await runAutonomousAgent(projectDir, args.model, args.maxIterations);
+		await runAutonomousAgent(projectDir, args.model, args.maxIterations, args.provider);
 	} catch (error) {
 		if (error instanceof Error) {
 			if (error.message === "SIGINT") {
