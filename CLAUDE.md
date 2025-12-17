@@ -80,6 +80,9 @@ bun install
 # TypeScript/Bun: Run security tests
 bun run src/test-security.ts
 
+# TypeScript/Bun: Build standalone executable
+bun run build:standalone
+
 # TypeScript/Bun: Lint code
 bun run lint
 

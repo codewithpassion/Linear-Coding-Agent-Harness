@@ -59,6 +59,30 @@ bun run src/index.ts --project-dir ./my_project --provider plane
 bun run src/index.ts --project-dir ./my_project --max-iterations 3 --provider beads
 ```
 
+### Building a Standalone Executable
+
+You can build a self-contained executable that includes the Bun runtime:
+
+```bash
+# Build standalone executable (outputs to dist/coding-agent)
+bun run build:standalone
+
+# Run the executable directly
+./dist/coding-agent --project-dir ./my_project --provider beads
+
+# Distribute the executable (no Bun installation needed on target machine)
+cp dist/coding-agent /usr/local/bin/coding-agent
+coding-agent --help
+```
+
+**Benefits**:
+- Single ~100MB executable (includes Bun runtime)
+- No Node.js or Bun installation required on target machine
+- Faster startup than interpreted execution
+- Ideal for distribution and deployment
+
+**Note**: The executable still requires environment variables (CLAUDE_CODE_OAUTH_TOKEN, LINEAR_API_KEY, etc.) and external tools (bd CLI for Beads, npx for Puppeteer MCP).
+
 ## Provider Implementation Details
 
 ### Architecture Overview

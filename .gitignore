@@ -4,6 +4,9 @@ generations/
 # Log files
 logs/
 
+# Build output
+dist/
+
 .env
 venv
 __pycache__

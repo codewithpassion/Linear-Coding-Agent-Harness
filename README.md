@@ -394,7 +394,50 @@ Open your Plane workspace to see:
 
 ## TypeScript/Bun Version
 
-See [README-TYPESCRIPT.md](README-TYPESCRIPT.md) for details on the TypeScript/Bun implementation with multi-provider support.
+The TypeScript/Bun implementation provides the same multi-provider functionality with native TypeScript support.
+
+### Quick Start (TypeScript)
+
+```bash
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+
+# Install dependencies
+bun install
+
+# Run with Linear (default)
+bun run src/index.ts --project-dir ./my_project
+
+# Run with Beads (Git-native, offline)
+bun run src/index.ts --project-dir ./my_project --provider beads
+
+# Run with Plane
+bun run src/index.ts --project-dir ./my_project --provider plane
+```
+
+### Building a Standalone Executable
+
+Create a self-contained executable that includes the Bun runtime:
+
+```bash
+# Build standalone executable (~100MB)
+bun run build:standalone
+
+# Run the executable directly (no Bun installation needed)
+./dist/coding-agent --project-dir ./my_project --provider beads
+
+# Install system-wide
+sudo cp dist/coding-agent /usr/local/bin/
+coding-agent --help
+```
+
+**Benefits of standalone build:**
+- Single executable, no Bun installation required on target machine
+- Faster startup than interpreted execution
+- Ideal for distribution and CI/CD environments
+- Still requires environment variables and external tools (bd, npx)
+
+See [README-TYPESCRIPT.md](README-TYPESCRIPT.md) for complete details on the TypeScript/Bun implementation with multi-provider support.
 
 ## License
 
