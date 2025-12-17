@@ -1,0 +1,21 @@
+**Available {{browser.displayName}} Tools:**
+
+{{toolList browser.tools}}
+
+{{#ifBrowser "chrome-devtools"}}
+
+**Chrome DevTools Workflow:**
+1. Take snapshot first: `take_snapshot()` to get page structure with element UIDs
+2. Use UIDs for interaction: `click({ uid: '123' })`
+3. Network inspection available: `list_network_requests()` for debugging
+4. Performance profiling: `performance_start_trace()` / `performance_stop_trace()`
+{{/ifBrowser}}
+
+{{#ifBrowser "puppeteer"}}
+
+**Puppeteer Workflow:**
+1. Navigate: `{{var browser.variables "navigate_tool"}}(url)`
+2. Find elements using CSS selectors
+3. Interact: `{{var browser.variables "click_tool"}}('button#submit')`
+4. Capture screenshots: `{{var browser.variables "screenshot_tool"}}()`
+{{/ifBrowser}}

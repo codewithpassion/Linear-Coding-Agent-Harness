@@ -137,9 +137,10 @@ export class BeadsProvider implements ProjectManagementProvider {
 	 *
 	 * Loads from prompts/beads/initializer_prompt.md
 	 *
+	 * @param _browserProvider - Browser automation provider (unused for now)
 	 * @returns Promise resolving to prompt content
 	 */
-	async getInitializerPrompt(): Promise<string> {
+	async getInitializerPrompt(_browserProvider?: unknown): Promise<string> {
 		// Get the directory of this source file
 		const __filename = fileURLToPath(import.meta.url);
 		const __dirname = dirname(__filename);
@@ -156,15 +157,16 @@ export class BeadsProvider implements ProjectManagementProvider {
 	 *
 	 * Loads from prompts/beads/coding_prompt.md
 	 *
+	 * @param _browserProvider - Browser automation provider (unused for now)
 	 * @returns Promise resolving to prompt content
 	 */
-	async getCodingPrompt(): Promise<string> {
+	async getCodingPrompt(_browserProvider?: unknown): Promise<string> {
 		// Get the directory of this source file
 		const __filename = fileURLToPath(import.meta.url);
 		const __dirname = dirname(__filename);
 
 		// Go up to project root, then into prompts/beads
-		const promptPath = join(__dirname, "..", "..", "prompts", "beads", "coding_prompt.md");
+		const promptPath = join(__dirname, "..", "..", "prompts/beads", "coding_prompt.md");
 
 		const file = Bun.file(promptPath);
 		return await file.text();

@@ -7,6 +7,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import type { BrowserProviderType } from "./browser-providers/types.js";
 import type { ProviderType } from "./providers/types.js";
 
 /**
@@ -23,6 +24,15 @@ export const CONFIG_FILE_NAME = ".coding-agent.config.json";
 export interface CodingAgentConfig {
 	/** The selected project management provider */
 	provider: ProviderType;
+
+	/** The selected browser automation provider */
+	browser?: BrowserProviderType;
+
+	/** Chrome DevTools Protocol specific configuration (optional) */
+	chromeDevTools?: {
+		/** Override default browser URL (default: http://localhost:9222) */
+		browserUrl?: string;
+	};
 
 	/** Linear-specific configuration (optional) */
 	linear?: {

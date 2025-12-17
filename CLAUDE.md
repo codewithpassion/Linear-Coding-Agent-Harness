@@ -18,6 +18,35 @@ The **TypeScript/Bun version** supports three project management backends:
 
 The **Python version** currently supports Linear only.
 
+### Browser Automation Providers
+
+The **TypeScript/Bun version** supports two browser automation backends:
+
+1. **Chrome DevTools** (MCP via stdio) - **Default**, 24+ tools including network inspection, performance profiling, console access
+2. **Puppeteer** (MCP via stdio) - 7 basic tools, lightweight headless browser automation
+
+**Selection Method:**
+- CLI flag: `--browser chrome-devtools` or `--browser puppeteer`
+- Config file: Set `browser` field in `.coding-agent.config.json`
+- Environment variable: `BROWSER_PROVIDER=chrome-devtools` or `BROWSER_PROVIDER=puppeteer`
+- Default: `chrome-devtools`
+
+**Chrome DevTools Setup:**
+```bash
+# Chrome DevTools requires Chrome running with remote debugging
+# Option 1: Auto-launch (agent will start Chrome automatically)
+bun run src/index.ts --project-dir ./my_project --browser chrome-devtools
+
+# Option 2: Manual launch (for custom configuration)
+google-chrome --remote-debugging-port=9222 &
+bun run src/index.ts --project-dir ./my_project --browser chrome-devtools
+
+# Option 3: Custom port
+export CHROME_DEVTOOLS_URL=http://localhost:9333
+google-chrome --remote-debugging-port=9333 &
+bun run src/index.ts --project-dir ./my_project --browser chrome-devtools
+```
+
 ### Available Implementations
 
 1. **Python** (Original) - `*.py` files, uses `claude-code-sdk` Python package
@@ -46,7 +75,7 @@ python autonomous_agent_demo.py --project-dir ./my_project --model claude-sonnet
 ### Running the Demo (TypeScript/Bun)
 
 ```bash
-# Start a fresh project with Linear (default)
+# Start a fresh project with Linear (default) and Chrome DevTools (default)
 bun run src/index.ts --project-dir ./my_project
 
 # Start with Beads (Git-native, works offline)
@@ -54,6 +83,12 @@ bun run src/index.ts --project-dir ./my_project --provider beads
 
 # Start with Plane.so
 bun run src/index.ts --project-dir ./my_project --provider plane
+
+# Use Puppeteer instead of Chrome DevTools
+bun run src/index.ts --project-dir ./my_project --browser puppeteer
+
+# Combine provider and browser selection
+bun run src/index.ts --project-dir ./my_project --provider beads --browser chrome-devtools
 
 # Continue existing project (auto-detects provider from marker files)
 bun run src/index.ts --project-dir ./my_project
@@ -181,27 +216,36 @@ interface ProjectManagementProvider {
 - **`linear_config.py`**: Linear configuration constants
 
 **TypeScript/Bun (Multi-provider)**:
-- **`src/index.ts`**: Main entry point, CLI argument parsing with `--provider` flag
-- **`src/agent.ts`**: Agent session loop with provider detection
-- **`src/client.ts`**: Claude SDK client configuration, dynamic MCP setup
+- **`src/index.ts`**: Main entry point, CLI argument parsing with `--provider` and `--browser` flags
+- **`src/agent.ts`**: Agent session loop with provider and browser detection
+- **`src/client.ts`**: Claude SDK client configuration, dynamic MCP setup for PM and browser providers
 - **`src/security.ts`**: Bash command allowlist and validation hooks
 - **`src/config.ts`**: Config file management (`.coding-agent.config.json`)
-- **`src/providers/types.ts`**: Provider interface and ProjectState type
-- **`src/providers/factory.ts`**: Provider creation and auto-detection
+- **`src/providers/types.ts`**: PM provider interface and ProjectState type
+- **`src/providers/factory.ts`**: PM provider creation and auto-detection
 - **`src/providers/linear-provider.ts`**: Linear MCP implementation (268 lines)
 - **`src/providers/beads-provider.ts`**: Beads CLI implementation (192 lines)
 - **`src/providers/beads-utils.ts`**: Beads CLI wrapper utilities (196 lines)
 - **`src/providers/plane-provider.ts`**: Plane REST implementation (296 lines)
 - **`src/providers/plane-client.ts`**: Plane REST API client (342 lines)
+- **`src/browser-providers/types.ts`**: Browser provider interface
+- **`src/browser-providers/factory.ts`**: Browser provider creation and detection
+- **`src/browser-providers/puppeteer-provider.ts`**: Puppeteer MCP implementation
+- **`src/browser-providers/chrome-devtools-provider.ts`**: Chrome DevTools MCP implementation
+- **`src/templates/engine.ts`**: Handlebars template engine for dynamic prompts
 
 ### MCP Servers Used
 
 | Server | Transport | Used By | Purpose |
 |--------|-----------|---------|---------|
 | **Linear** | HTTP (`https://mcp.linear.app/mcp`) | Linear provider | Project management, issue tracking |
-| **Puppeteer** | stdio (`npx puppeteer-mcp-server`) | All providers | Browser automation for UI testing |
+| **Chrome DevTools** | stdio (`npx chrome-devtools-mcp@latest`) | When `--browser chrome-devtools` (default) | Browser automation with 24+ tools (network, performance, console) |
+| **Puppeteer** | stdio (`npx puppeteer-mcp-server`) | When `--browser puppeteer` | Lightweight browser automation with 7 tools |
 
-**Note**: Only Linear uses an MCP server for project management. Beads uses CLI commands via the Bash tool, and Plane uses direct REST API calls via fetch().
+**Notes**:
+- Only Linear uses an MCP server for project management. Beads uses CLI commands via the Bash tool, and Plane uses direct REST API calls via fetch().
+- Browser automation provider is selected via `--browser` flag or config file (default: chrome-devtools)
+- Chrome DevTools requires Chrome running with remote debugging on port 9222 (auto-launched if not running)
 
 ### Security Model (Defense in Depth)
 

@@ -207,9 +207,10 @@ export class LinearProvider implements ProjectManagementProvider {
 	 * Get the initializer prompt content.
 	 * Loaded from prompts/linear/initializer_prompt.md
 	 *
+	 * @param _browserProvider - Browser automation provider (unused for now)
 	 * @returns Promise resolving to prompt content
 	 */
-	async getInitializerPrompt(): Promise<string> {
+	async getInitializerPrompt(_browserProvider?: unknown): Promise<string> {
 		// Get the directory of this source file
 		const __filename = fileURLToPath(import.meta.url);
 		const __dirname = dirname(__filename);
@@ -225,9 +226,10 @@ export class LinearProvider implements ProjectManagementProvider {
 	 * Get the coding prompt content.
 	 * Loaded from prompts/linear/coding_prompt.md
 	 *
+	 * @param _browserProvider - Browser automation provider (unused for now)
 	 * @returns Promise resolving to prompt content
 	 */
-	async getCodingPrompt(): Promise<string> {
+	async getCodingPrompt(_browserProvider?: unknown): Promise<string> {
 		// Get the directory of this source file
 		const __filename = fileURLToPath(import.meta.url);
 		const __dirname = dirname(__filename);

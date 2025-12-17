@@ -23,6 +23,18 @@ The TypeScript version implements a clean strategy pattern for swappable project
    - Authentication: PLANE_API_KEY
    - Rate limiting (60 req/min)
 
+### Browser Automation Providers
+
+1. **Chrome DevTools** (MCP via stdio) - **Default**
+   - 24+ tools including network inspection, performance profiling, console access
+   - Requires Chrome with remote debugging (auto-launched if not running)
+   - MCP command: `npx chrome-devtools-mcp@latest --browser-url http://localhost:9222`
+
+2. **Puppeteer** (MCP via stdio)
+   - 7 basic tools for lightweight browser automation
+   - Headless browser automation
+   - MCP command: `npx puppeteer-mcp-server`
+
 ## Quick Start
 
 ### Prerequisites
@@ -46,7 +58,7 @@ npm install -g @beads/bd
 ### Run with Different Providers
 
 ```bash
-# Linear (default)
+# Linear (default PM) + Chrome DevTools (default browser)
 bun run src/index.ts --project-dir ./my_project
 
 # Beads (Git-native, works offline)
@@ -55,8 +67,31 @@ bun run src/index.ts --project-dir ./my_project --provider beads
 # Plane.so
 bun run src/index.ts --project-dir ./my_project --provider plane
 
+# Use Puppeteer instead of Chrome DevTools
+bun run src/index.ts --project-dir ./my_project --browser puppeteer
+
+# Combine PM and browser provider selection
+bun run src/index.ts --project-dir ./my_project --provider beads --browser chrome-devtools
+
 # With limited iterations
 bun run src/index.ts --project-dir ./my_project --max-iterations 3 --provider beads
+```
+
+### Chrome DevTools Setup
+
+```bash
+# Option 1: Auto-launch (recommended)
+# The agent will automatically start Chrome with remote debugging
+bun run src/index.ts --project-dir ./my_project --browser chrome-devtools
+
+# Option 2: Manual launch
+google-chrome --remote-debugging-port=9222 &
+bun run src/index.ts --project-dir ./my_project --browser chrome-devtools
+
+# Option 3: Custom port
+export CHROME_DEVTOOLS_URL=http://localhost:9333
+google-chrome --remote-debugging-port=9333 &
+bun run src/index.ts --project-dir ./my_project --browser chrome-devtools
 ```
 
 ### Building a Standalone Executable
@@ -81,7 +116,7 @@ coding-agent --help
 - Faster startup than interpreted execution
 - Ideal for distribution and deployment
 
-**Note**: The executable still requires environment variables (CLAUDE_CODE_OAUTH_TOKEN, LINEAR_API_KEY, etc.) and external tools (bd CLI for Beads, npx for Puppeteer MCP).
+**Note**: The executable still requires environment variables (CLAUDE_CODE_OAUTH_TOKEN, LINEAR_API_KEY, etc.) and external tools (bd CLI for Beads, npx for MCP servers, Chrome for Chrome DevTools).
 
 ## Provider Implementation Details
 

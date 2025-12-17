@@ -13,6 +13,7 @@ import type {
 	Options,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { ProjectManagementProvider } from "./providers/types.js";
+import type { BrowserProvider } from "./browser-providers/types.js";
 import { bashSecurityHook } from "./security.js";
 
 /**
@@ -35,19 +36,6 @@ interface SecuritySettings {
 }
 
 /**
- * Puppeteer MCP tools for browser automation
- */
-const PUPPETEER_TOOLS = [
-	"mcp__puppeteer__puppeteer_navigate",
-	"mcp__puppeteer__puppeteer_screenshot",
-	"mcp__puppeteer__puppeteer_click",
-	"mcp__puppeteer__puppeteer_fill",
-	"mcp__puppeteer__puppeteer_select",
-	"mcp__puppeteer__puppeteer_hover",
-	"mcp__puppeteer__puppeteer_evaluate",
-] as const;
-
-/**
  * Built-in Claude Code tools
  */
 const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const;
@@ -56,7 +44,7 @@ const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const
  * Creates SDK options for a Claude Agent SDK query.
  *
  * Configures:
- * - MCP servers (provider + Puppeteer)
+ * - MCP servers (provider + browser automation)
  * - Security hooks (bash command validation)
  * - Working directory and permissions
  * - Tool allowlist
@@ -69,6 +57,7 @@ const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const
  * @param projectDir - Directory for the project (used as cwd)
  * @param model - Claude model to use
  * @param provider - Project management provider to use
+ * @param browserProvider - Browser automation provider to use
  * @returns Options object for SDK query
  *
  * @throws Error if required environment variables are not set
@@ -78,9 +67,11 @@ const BUILTIN_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"] as const
  * import { query } from "@anthropic-ai/claude-agent-sdk";
  * import { createQueryOptions } from "./client.js";
  * import { LinearProvider } from "./providers/linear.js";
+ * import { ChromeDevToolsProvider } from "./browser-providers/chrome-devtools-provider.js";
  *
  * const provider = new LinearProvider();
- * const options = await createQueryOptions("/path/to/project", "claude-opus-4-5-20251101", provider);
+ * const browserProvider = new ChromeDevToolsProvider();
+ * const options = await createQueryOptions("/path/to/project", "claude-opus-4-5-20251101", provider, browserProvider);
  * const result = query({ prompt: "Hello", options });
  * for await (const msg of result) {
  *   console.log(msg);
@@ -91,6 +82,7 @@ export async function createQueryOptions(
 	projectDir: string,
 	model: string,
 	provider: ProjectManagementProvider,
+	browserProvider: BrowserProvider,
 ): Promise<Options> {
 	// Validate environment
 	const claudeToken = process.env["CLAUDE_CODE_OAUTH_TOKEN"];
@@ -119,7 +111,7 @@ export async function createQueryOptions(
 				"Glob(./**)",
 				"Grep(./**)",
 				"Bash(*)",
-				...PUPPETEER_TOOLS,
+				...browserProvider.getRequiredTools(),
 				...provider.getRequiredTools(),
 			],
 		},
@@ -132,19 +124,16 @@ export async function createQueryOptions(
 	console.log("   - Sandbox enabled (OS-level bash isolation)");
 	console.log(`   - Filesystem restricted to: ${projectDir}`);
 	console.log("   - Bash commands restricted to allowlist (see security.ts)");
-	console.log(`   - MCP servers: puppeteer, ${provider.name}`);
+	console.log(`   - MCP servers: ${browserProvider.name}, ${provider.name}`);
 	console.log();
 
 	// MCP Server Configuration
-	const mcpServers: Record<string, MCPServerConfiguration> = {
-		puppeteer: {
-			type: "stdio",
-			command: "npx",
-			args: ["puppeteer-mcp-server"],
-		},
-	};
+	const mcpServers: Record<string, MCPServerConfiguration> = {};
 
-	// Add provider's MCP server configuration
+	// Add browser provider's MCP server configuration
+	mcpServers[browserProvider.name] = browserProvider.getMcpServerConfig();
+
+	// Add project management provider's MCP server configuration (if any)
 	const providerMcpConfig = provider.getMcpServerConfig();
 	if (providerMcpConfig) {
 		mcpServers[provider.name] = providerMcpConfig;
@@ -243,7 +232,7 @@ export function validateEnvironment(): void {
 /**
  * Export tool lists for external use
  */
-export { PUPPETEER_TOOLS, BUILTIN_TOOLS };
+export { BUILTIN_TOOLS };
 
 /**
  * Export types for external use

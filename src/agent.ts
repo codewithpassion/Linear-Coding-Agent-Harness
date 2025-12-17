@@ -12,6 +12,8 @@ import type {
 	SDKResultMessage,
 	SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
+import type { BrowserProviderType } from "./browser-providers/types.js";
+import { detectAndCreateBrowserProvider } from "./browser-providers/factory.js";
 import { createQueryOptions } from "./client.js";
 import { printSessionHeader } from "./progress.js";
 import { copySpecToProject } from "./prompts.js";
@@ -76,6 +78,7 @@ function isResultMessage(msg: SDKMessage): msg is SDKResultMessage {
  * @param projectDir - Project directory path
  * @param model - Claude model to use
  * @param provider - Project management provider to use
+ * @param browserProvider - Browser automation provider to use
  * @returns Promise resolving to [status, response_text] where status is:
  *          - "continue" if agent should continue working
  *          - "error" if an error occurred
@@ -85,12 +88,13 @@ export async function runAgentSession(
 	projectDir: string,
 	model: string,
 	provider: ProjectManagementProvider,
+	browserProvider: import("./browser-providers/types.js").BrowserProvider,
 ): Promise<AgentSessionResult> {
 	console.log("Sending prompt to Claude Agent SDK...\n");
 
 	try {
 		// Get options for the query
-		const options = await createQueryOptions(projectDir, model, provider);
+		const options = await createQueryOptions(projectDir, model, provider, browserProvider);
 
 		// Create query
 		const result = query({
@@ -175,6 +179,7 @@ export async function runAgentSession(
  * @param model - Claude model to use
  * @param maxIterations - Maximum number of iterations (undefined for unlimited)
  * @param providerType - Project management provider type (optional, auto-detected if not specified)
+ * @param browserType - Browser automation provider type (optional, defaults to chrome-devtools)
  * @returns Promise that resolves when the agent loop completes
  */
 export async function runAutonomousAgent(
@@ -182,6 +187,7 @@ export async function runAutonomousAgent(
 	model: string,
 	maxIterations: number | undefined = undefined,
 	providerType?: ProviderType,
+	browserType?: BrowserProviderType,
 ): Promise<void> {
 	console.log(`\n${"=".repeat(70)}`);
 	console.log("  AUTONOMOUS CODING AGENT DEMO");
@@ -199,11 +205,35 @@ export async function runAutonomousAgent(
 	// Create project directory
 	await Bun.$`mkdir -p ${projectDir}`.quiet();
 
-	// Detect and create provider
+	// Detect and create project management provider
 	const provider = await detectAndCreateProvider(projectDir, providerType);
 	provider.validateEnvironment();
 
 	console.log(`Provider: ${provider.name}`);
+
+	// Detect and create browser automation provider
+	const browserProvider = await detectAndCreateBrowserProvider(projectDir, browserType);
+	console.log(`Browser: ${browserProvider.displayName}`);
+
+	// Validate browser environment and auto-launch if needed
+	try {
+		await browserProvider.validateEnvironment();
+		console.log(`   - ${browserProvider.displayName} is ready`);
+	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		console.log(`   - ${browserProvider.displayName} not running: ${errorMsg}`);
+		console.log(`   - Attempting to launch ${browserProvider.displayName}...`);
+		try {
+			await browserProvider.ensureBrowserRunning();
+			console.log(`   - ${browserProvider.displayName} launched successfully`);
+		} catch (launchError) {
+			const launchMsg = launchError instanceof Error ? launchError.message : String(launchError);
+			console.error(`   - Failed to launch ${browserProvider.displayName}: ${launchMsg}`);
+			console.error(`   - Please start ${browserProvider.displayName} manually and try again`);
+			throw launchError;
+		}
+	}
+
 	console.log();
 
 	// Check if this is a fresh start or continuation
@@ -244,14 +274,14 @@ export async function runAutonomousAgent(
 		// Choose prompt based on session type
 		let prompt: string;
 		if (isFirstRun) {
-			prompt = await provider.getInitializerPrompt();
+			prompt = await provider.getInitializerPrompt(browserProvider);
 			isFirstRun = false; // Only use initializer once
 		} else {
-			prompt = await provider.getCodingPrompt();
+			prompt = await provider.getCodingPrompt(browserProvider);
 		}
 
 		// Run session
-		const [status, _response] = await runAgentSession(prompt, projectDir, model, provider);
+		const [status, _response] = await runAgentSession(prompt, projectDir, model, provider, browserProvider);
 
 		// Handle status
 		if (status === "continue") {

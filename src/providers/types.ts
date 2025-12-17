@@ -134,17 +134,23 @@ export interface ProjectManagementProvider {
 	 * Get the initializer prompt content for this provider.
 	 * The initializer prompt guides the agent through project setup.
 	 *
+	 * @param browserProvider - Browser automation provider (for template rendering)
 	 * @returns Promise resolving to prompt content
 	 */
-	getInitializerPrompt(): Promise<string>;
+	getInitializerPrompt(
+		browserProvider?: import("../browser-providers/types.js").BrowserProvider,
+	): Promise<string>;
 
 	/**
 	 * Get the coding prompt content for this provider.
 	 * The coding prompt guides the agent through feature implementation.
 	 *
+	 * @param browserProvider - Browser automation provider (for template rendering)
 	 * @returns Promise resolving to prompt content
 	 */
-	getCodingPrompt(): Promise<string>;
+	getCodingPrompt(
+		browserProvider?: import("../browser-providers/types.js").BrowserProvider,
+	): Promise<string>;
 
 	// ============================================================================
 	// Progress Display

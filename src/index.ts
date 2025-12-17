@@ -15,6 +15,7 @@
 
 import { isAbsolute, resolve } from "node:path";
 import { runAutonomousAgent } from "./agent.js";
+import type { BrowserProviderType } from "./browser-providers/types.js";
 import type { ProviderType } from "./providers/types.js";
 
 /**
@@ -25,6 +26,7 @@ interface CliArguments {
 	maxIterations: number | undefined;
 	model: string;
 	provider?: ProviderType;
+	browser?: BrowserProviderType;
 }
 
 /**
@@ -120,6 +122,25 @@ export function parseArgs(): CliArguments {
 				}
 				break;
 
+			case "--browser":
+			case "-b":
+				if (i + 1 < args.length) {
+					const nextArg = args[i + 1];
+					if (!nextArg) {
+						throw new Error(`${arg} requires a value`);
+					}
+					if (!["puppeteer", "chrome-devtools"].includes(nextArg)) {
+						throw new Error(
+							`Invalid browser provider: ${nextArg}. Must be: puppeteer or chrome-devtools`,
+						);
+					}
+					result.browser = nextArg as BrowserProviderType;
+					i++;
+				} else {
+					throw new Error(`${arg} requires a value`);
+				}
+				break;
+
 			case "--help":
 			// biome-ignore lint/suspicious/noFallthroughSwitchClause: intentional fallthrough for help flags
 			case "-h":
@@ -153,6 +174,9 @@ Options:
   --max-iterations, -m <num>  Maximum number of agent iterations (default: unlimited)
   --model <model>             Claude model to use (default: ${CONFIG.DEFAULT_MODEL})
   --provider <type>           Project management provider: linear, beads, or plane (default: auto-detect or linear)
+  --browser, -b <type>        Browser automation provider
+                              Options: puppeteer, chrome-devtools
+                              Default: chrome-devtools
   --help, -h                  Show this help message
 
 Examples:
@@ -236,7 +260,13 @@ export async function main(): Promise<void> {
 		const projectDir = resolveProjectDir(args.projectDir);
 
 		// Run the autonomous agent
-		await runAutonomousAgent(projectDir, args.model, args.maxIterations, args.provider);
+		await runAutonomousAgent(
+			projectDir,
+			args.model,
+			args.maxIterations,
+			args.provider,
+			args.browser,
+		);
 	} catch (error) {
 		if (error instanceof Error) {
 			if (error.message === "SIGINT") {
