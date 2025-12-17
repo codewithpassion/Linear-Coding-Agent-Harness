@@ -1,0 +1,29 @@
+{
+	"name": "linear-coding-agent-harness",
+	"version": "1.0.0",
+	"description": "Linear-integrated autonomous coding agent harness built with Claude Agent SDK (TypeScript)",
+	"type": "module",
+	"main": "src/index.ts",
+	"scripts": {
+		"start": "bun run src/index.ts",
+		"dev": "bun --watch src/index.ts",
+		"test": "bun run src/test-security.ts",
+		"lint": "biome check .",
+		"tsc:check": "tsc --noEmit",
+		"check": "biome check . && tsc --noEmit",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"typecheck": "tsc --noEmit"
+	},
+	"keywords": ["claude", "agent", "autonomous", "linear", "coding", "mcp"],
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"@anthropic-ai/claude-agent-sdk": "^0.1.71"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/bun": "latest",
+		"typescript": "^5.9.3"
+	}
+}
