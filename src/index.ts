@@ -16,6 +16,7 @@
 import { isAbsolute, resolve } from "node:path";
 import { runAutonomousAgent } from "./agent.js";
 import type { BrowserProviderType } from "./browser-providers/types.js";
+import { initializeConfig } from "./init-config.js";
 import type { ProviderType } from "./providers/types.js";
 
 /**
@@ -27,6 +28,7 @@ interface CliArguments {
 	model: string;
 	provider?: ProviderType;
 	browser?: BrowserProviderType;
+	init: boolean;
 }
 
 /**
@@ -53,6 +55,7 @@ export function parseArgs(): CliArguments {
 		projectDir: CONFIG.DEFAULT_PROJECT_DIR,
 		maxIterations: undefined,
 		model: CONFIG.DEFAULT_MODEL,
+		init: false,
 	};
 
 	for (let i = 0; i < args.length; i++) {
@@ -141,6 +144,10 @@ export function parseArgs(): CliArguments {
 				}
 				break;
 
+			case "--init":
+				result.init = true;
+				break;
+
 			case "--help":
 			// biome-ignore lint/suspicious/noFallthroughSwitchClause: intentional fallthrough for help flags
 			case "-h":
@@ -159,14 +166,47 @@ export function parseArgs(): CliArguments {
 }
 
 /**
+ * Detect if running as standalone executable or via bun
+ *
+ * @returns Command prefix for examples (e.g., "coding-agent" or "bun run src/index.ts")
+ */
+function getCommandPrefix(): string {
+	const execPath = process.execPath;
+
+	// Check if we're running as a compiled executable
+	// When using `bun build --compile`, the execPath will be the compiled binary
+	// When running via `bun run`, the execPath will be the bun binary itself
+	if (execPath.includes("coding-agent") || !execPath.includes("bun")) {
+		// Running as standalone executable
+		// If installed in system path (e.g., /usr/local/bin/coding-agent), just show the name
+		if (execPath.includes("/usr/local/bin/") || execPath.includes("/usr/bin/")) {
+			return "coding-agent";
+		}
+
+		// For local builds, show relative path from current directory
+		if (execPath.includes("/dist/coding-agent")) {
+			return "./dist/coding-agent";
+		}
+
+		// Fallback to just the binary name
+		return "coding-agent";
+	}
+
+	// Running via bun
+	return "bun run src/index.ts";
+}
+
+/**
  * Print help message
  */
 function printHelp(): void {
+	const cmd = getCommandPrefix();
+
 	console.log(`
 Autonomous Coding Agent Demo - Long-running agent harness
 
 Usage:
-  bun run src/index.ts [options]
+  ${cmd} [options]
 
 Options:
   --project-dir, -p <path>    Directory for the project (default: ${CONFIG.DEFAULT_PROJECT_DIR})
@@ -177,26 +217,30 @@ Options:
   --browser, -b <type>        Browser automation provider
                               Options: puppeteer, chrome-devtools
                               Default: chrome-devtools
+  --init                      Run interactive configuration wizard to create/update .coding-agent.config.json
   --help, -h                  Show this help message
 
 Examples:
+  # Initialize configuration interactively
+  ${cmd} --init --project-dir ./claude_clone
+
   # Start fresh project (default: Linear)
-  bun run src/index.ts --project-dir ./claude_clone
+  ${cmd} --project-dir ./claude_clone
 
   # Start with Beads
-  bun run src/index.ts --project-dir ./my_app --provider beads
+  ${cmd} --project-dir ./my_app --provider beads
 
   # Start with Plane
-  bun run src/index.ts --project-dir ./my_app --provider plane
+  ${cmd} --project-dir ./my_app --provider plane
 
   # Use a specific model
-  bun run src/index.ts --project-dir ./claude_clone --model claude-sonnet-4-5-20250929
+  ${cmd} --project-dir ./claude_clone --model claude-sonnet-4-5-20250929
 
   # Limit iterations for testing
-  bun run src/index.ts --project-dir ./claude_clone --max-iterations 5
+  ${cmd} --project-dir ./claude_clone --max-iterations 5
 
   # Continue existing project (auto-detects provider)
-  bun run src/index.ts --project-dir ./claude_clone
+  ${cmd} --project-dir ./claude_clone
 
 Environment Variables:
   CLAUDE_CODE_OAUTH_TOKEN    Claude Code OAuth token (required)
@@ -253,11 +297,17 @@ export async function main(): Promise<void> {
 		// Parse command line arguments
 		const args = parseArgs();
 
-		// Validate environment variables
-		validateEnvironment();
-
 		// Resolve project directory
 		const projectDir = resolveProjectDir(args.projectDir);
+
+		// Handle --init mode
+		if (args.init) {
+			await initializeConfig(projectDir);
+			return;
+		}
+
+		// Validate environment variables
+		validateEnvironment();
 
 		// Run the autonomous agent
 		await runAutonomousAgent(
