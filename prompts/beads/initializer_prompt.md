@@ -27,10 +27,18 @@ This creates:
 Beads automatically syncs between the SQLite cache and JSONL file, with Git hooks
 for pre-commit (immediate flush) and post-merge (import).
 
-### CRITICAL TASK: Create Issues via bd CLI
+### CRITICAL TASK: Create Issues via bd CLI (Test-First Approach)
 
-Based on `app_spec.txt`, create issues for each feature using the `bd create` command.
-Create 50 detailed issues that comprehensively cover all features in the spec.
+Based on `app_spec.txt`, create issues as detailed test specifications using the `bd create` command.
+
+**ISSUE COUNT REQUIREMENTS:**
+- **Simple applications:** Minimum 150 issues
+- **Medium complexity:** Minimum 250 issues
+- **Complex applications (like Claude.ai clone):** Minimum 400+ issues
+
+The Claude.ai clone spec is COMPLEX - you should create **at least 400 detailed issues**
+that comprehensively cover all features in the spec. Each issue is a test case that
+must pass for the feature to be considered complete.
 
 **For each feature, create an issue with:**
 
@@ -64,20 +72,41 @@ bd create "Homepage hero section styling" -t task -p 3 --json
 - Priority 4 (Low): Polish, nice-to-haves, edge cases
 
 **IMPORTANT NOTES:**
-- Create 50 issues total covering all features in the spec
-- Mix of functional and style features
+- Create 400+ issues total for this complex application (scale based on app complexity)
+- Cover ALL features in the spec with granular test cases
+- Mix of functional and style features across 20+ categories
+- Vary test complexity: some narrow (2-5 steps), some comprehensive (10-15 steps)
 - Order by priority: foundational features get priority 1-2, polish features get 3-4
 - All issues start with status "open" (default)
 - Each issue gets a unique hash-based ID (e.g., "bd-a1b2", "bd-f14c3")
+- Each issue is a complete test specification that must pass
 
 **After Creating Each Issue:**
-You can add detailed descriptions using bash redirection or by editing `.beads/issues.jsonl` directly.
-However, for simplicity, focus on clear titles that encode the feature. Future agents will
-reference the main `app_spec.txt` for detailed requirements.
+Add detailed test specifications to each issue. You can use the `bd update` command
+or edit `.beads/issues.jsonl` directly to add descriptions with:
+- Feature description and category (Security, Navigation, Forms, Data Display, etc.)
+- Detailed test steps (5-15 steps depending on complexity)
+- Acceptance criteria including ZERO console errors and NO mock data
+- Anti-patterns to avoid (hardcoded arrays, fake variables, setTimeout delays)
 
-**CRITICAL INSTRUCTION:**
-Once created, issues should ONLY have their status changed (open → in_progress → closed).
-This ensures no functionality is missed across sessions.
+**CRITICAL INSTRUCTION - READ CAREFULLY:**
+
+IT IS CATASTROPHIC TO REMOVE OR EDIT ISSUES IN FUTURE SESSIONS.
+
+Once created, issues can ONLY have their status changed (open → in_progress → closed).
+
+**NEVER:**
+- Delete issues
+- Archive issues
+- Modify issue descriptions or test steps after creation
+- Remove acceptance criteria
+- Skip issues because they seem "too hard" or "unnecessary"
+
+Features transition ONLY from incomplete (open/in_progress) to passing (closed) - never deleted,
+never modified. This preservation approach prevents functionality gaps across agent sessions.
+
+If a test seems wrong or redundant, mark it closed after verification - don't delete it.
+Every test case exists for a reason.
 
 ### NEXT TASK: Create Meta Issue for Session Tracking
 
@@ -138,6 +167,9 @@ the highest-priority features. Remember:
 - Use `bd update <issue-id> --status in_progress` to claim an issue
 - Work on ONE feature at a time
 - Test thoroughly before marking status as "closed"
+- ALL data must come from real database - NO mock data or hardcoded arrays
+- Zero console errors required
+- Verify through browser automation
 - Use `bd close <issue-id> --reason "<summary>"` to complete an issue
 - Commit your progress before session ends
 
@@ -182,17 +214,23 @@ Before your context fills up:
 
    Accomplished:
    - Initialized Beads with bd init
-   - Created 50 issues from app_spec.txt
+   - Created 400+ issues from app_spec.txt (complex application)
    - Set up project structure
    - Created init.sh
    - Initialized git repository
    - [Any features started/completed]
 
    Beads Status:
-   - Total issues: 50
+   - Total issues: 400+
    - Closed: X
    - In Progress: Y
    - Open: Z
+
+   CRITICAL REMINDERS FOR NEXT SESSION:
+   - ALL data must come from real database - NO mock data or hardcoded arrays
+   - Zero console errors required for all features
+   - Every feature must be verified through browser automation
+   - Follow test specifications in each issue description
 
    Notes for Next Session:
    - [Any important context]

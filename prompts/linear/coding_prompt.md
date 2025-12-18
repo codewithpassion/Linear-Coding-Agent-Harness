@@ -117,23 +117,126 @@ Read the issue description for test steps and implement accordingly:
 
 **CRITICAL:** You MUST verify features through the actual UI.
 
-Use browser automation tools:
-- `mcp__puppeteer__puppeteer_navigate` - Start browser and go to URL
-- `mcp__puppeteer__puppeteer_screenshot` - Capture screenshot
-- `mcp__puppeteer__puppeteer_click` - Click elements
-- `mcp__puppeteer__puppeteer_fill` - Fill form inputs
+Use browser automation tools (specific tools vary by browser provider - Chrome DevTools or Puppeteer):
+- Navigate to pages
+- Take screenshots
+- Click elements
+- Fill form inputs
+- Check console for errors
 
 **DO:**
 - Test through the UI with clicks and keyboard input
 - Take screenshots to verify visual appearance
 - Check for console errors in browser
 - Verify complete user workflows end-to-end
+- Verify all data comes from real database queries
 
 **DON'T:**
 - Only test with curl commands (backend testing alone is insufficient)
 - Use JavaScript evaluation to bypass UI (no shortcuts)
 - Skip visual verification
 - Mark issues Done without thorough verification
+
+### STEP 8.5: MANDATORY VERIFICATION CHECKLIST
+
+**Before marking ANY issue as Done, you MUST verify ALL of these:**
+
+#### 1. Security Verification
+- [ ] Unauthorized users cannot access protected resources
+- [ ] User permissions are properly enforced
+- [ ] No sensitive data leaked in responses or UI
+- [ ] API keys and secrets not exposed in client code
+
+#### 2. Real Data Verification (CRITICAL!)
+- [ ] ALL displayed data comes from actual database queries
+- [ ] NO hardcoded arrays pretending to be data (e.g., `const messages = [...]`)
+- [ ] NO fake variables simulating backend (e.g., `const mockUsers = [...]`)
+- [ ] NO setTimeout() to simulate API delays
+- [ ] Data persists across page refreshes
+- [ ] Data survives server restarts
+
+#### 3. Navigation Verification
+- [ ] All links work correctly
+- [ ] Back button works as expected
+- [ ] URL updates appropriately
+- [ ] No broken routes or 404 errors
+
+#### 4. Integration Verification
+- [ ] Frontend successfully communicates with backend
+- [ ] Database operations complete successfully
+- [ ] External API calls work (if applicable)
+- [ ] Error states handled gracefully
+
+#### 5. Console Errors
+- [ ] **ZERO console errors** (this is mandatory, not optional)
+- [ ] No warnings about React keys, deprecated APIs, etc.
+- [ ] No failed network requests
+- [ ] No unhandled promise rejections
+
+#### 6. Visual Quality
+- [ ] Text is readable (no white-on-white, proper contrast)
+- [ ] No layout overflow or broken spacing
+- [ ] Buttons and clickable elements have proper hover states
+- [ ] Loading states display correctly
+- [ ] Error messages display properly
+- [ ] Responsive on mobile and desktop
+
+**If ANY item fails, DO NOT mark the issue as Done. Fix it first.**
+
+### STEP 8.6: MOCK DATA DETECTION
+
+**MANDATORY:** Before marking an issue Done, search the codebase for forbidden patterns.
+
+Run searches for common mock data patterns:
+
+```bash
+# Search for hardcoded arrays that might be mock data
+grep -r "const.*=.*\[" src/ | grep -v node_modules | grep -v ".test."
+
+# Search for variables with "mock", "fake", "dummy", "sample" in name
+grep -ri "mock\|fake\|dummy\|sample" src/ | grep -v node_modules | grep -v ".test."
+
+# Search for setTimeout used to simulate delays
+grep -r "setTimeout" src/ | grep -v node_modules | grep -v ".test."
+```
+
+**Review results and confirm:**
+- Any arrays are legitimate constants (e.g., dropdown options), not data that should come from the database
+- No variables are pretending to be backend responses
+- No setTimeout is simulating API delays
+
+**Common mock data patterns to eliminate:**
+```javascript
+// ❌ FORBIDDEN - Hardcoded messages
+const messages = [
+  { id: 1, text: "Hello", user: "John" },
+  { id: 2, text: "Hi there", user: "Jane" }
+];
+
+// ❌ FORBIDDEN - Fake user data
+const users = [
+  { name: "Alice", email: "alice@example.com" },
+  { name: "Bob", email: "bob@example.com" }
+];
+
+// ❌ FORBIDDEN - Simulated delay
+setTimeout(() => {
+  setLoading(false);
+  setData(mockData);
+}, 1000);
+
+// ✅ CORRECT - Data from database
+const messages = await db.query("SELECT * FROM messages");
+
+// ✅ CORRECT - Legitimate constants
+const PRIORITY_OPTIONS = ["low", "medium", "high"];
+```
+
+**If you find mock data:**
+1. Replace it with real database queries
+2. Update the implementation
+3. Re-test through browser automation
+4. Only then mark as Done
 
 ### STEP 9: UPDATE LINEAR ISSUE (CAREFULLY!)
 
@@ -257,24 +360,38 @@ Test like a human user with mouse and keyboard. Don't take shortcuts.
 
 **How many issues should you complete per session?**
 
-This depends on the project phase:
+This depends on the project phase and issue complexity:
 
-**Early phase (< 20% Done):** You may complete multiple issues per session when:
+**Early phase (< 20% Done, ~0-80 issues for 400-issue project):** You may complete multiple issues per session when:
 - Setting up infrastructure/scaffolding that unlocks many issues at once
 - Fixing build issues that were blocking progress
 - Auditing existing code and marking already-implemented features as Done
+- Working on simple, related issues that can be batched
 
-**Mid/Late phase (> 20% Done):** Slow down to **1-2 issues per session**:
+**Mid/Late phase (> 20% Done, ~80+ issues for 400-issue project):** Slow down to **1-2 issues per session**:
 - Each feature now requires focused implementation and testing
 - Quality matters more than quantity
+- Thorough verification (Steps 8.5 and 8.6) takes time
 - Clean handoffs are critical
+
+**ONE FEATURE PER SESSION PREFERRED:**
+With 400+ issues, it's better to thoroughly complete ONE feature with:
+- Full implementation
+- Comprehensive browser automation testing
+- All verification checklist items passing
+- Mock data detection completed
+- Clean git commit
+- Detailed Linear comment
+
+...than to partially implement multiple features.
 
 **After completing an issue, ask yourself:**
 1. Is the app in a stable, working state right now?
-2. Have I been working for a while? (You can't measure this precisely, but use judgment)
-3. Would this be a good stopping point for handoff?
+2. Have I completed all verification steps (8.5 and 8.6)?
+3. Have I been working for a while? (You can't measure this precisely, but use judgment)
+4. Would this be a good stopping point for handoff?
 
-If yes to all three → proceed to Step 11 (session summary) and end cleanly.
+If yes to all four → proceed to Step 11 (session summary) and end cleanly.
 If no → you may continue to the next issue, but **commit first** and stay aware.
 
 **Golden rule:** It's always better to end a session cleanly with good handoff notes
@@ -284,17 +401,25 @@ than to start another issue and risk running out of context mid-implementation.
 
 ## IMPORTANT REMINDERS
 
-**Your Goal:** Production-quality application with all Linear issues Done
+**Your Goal:** Production-quality application with all Linear issues Done (400+ for this complex app)
 
 **This Session's Goal:** Make meaningful progress with clean handoff
 
 **Priority:** Fix regressions before implementing new features
 
-**Quality Bar:**
-- Zero console errors
+**Quality Bar (ALL MANDATORY):**
+- **ZERO console errors** (not negotiable)
+- **ALL data from real database** - NO mock data, hardcoded arrays, or fake variables
 - Polished UI matching the design in app_spec.txt
 - All features work end-to-end through the UI
 - Fast, responsive, professional
+- Complete verification checklist (Step 8.5) passing
+- Mock data detection (Step 8.6) completed
+
+**Mock Data is Catastrophic:**
+If you implement features with hardcoded data, future agents will assume the feature
+works and move on. The application will appear complete but be non-functional.
+ALWAYS use real database queries.
 
 **Context is finite.** You cannot monitor your context usage, so err on the side
 of ending sessions early with good handoff notes. The next agent will continue.

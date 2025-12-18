@@ -72,10 +72,18 @@ const project = await response.json();
 
 Save the returned project ID - you'll use it when creating work items.
 
-### CRITICAL TASK: Create Plane Work Items
+### CRITICAL TASK: Create Plane Work Items (Test-First Approach)
 
-Based on `app_spec.txt`, create work items for each feature using the Plane REST API.
-Create 50 detailed work items that comprehensively cover all features in the spec.
+Based on `app_spec.txt`, create work items as detailed test specifications using the Plane REST API.
+
+**WORK ITEM COUNT REQUIREMENTS:**
+- **Simple applications:** Minimum 150 work items
+- **Medium complexity:** Minimum 250 work items
+- **Complex applications (like Claude.ai clone):** Minimum 400+ work items
+
+The Claude.ai clone spec is COMPLEX - you should create **at least 400 detailed work items**
+that comprehensively cover all features in the spec. Each work item is a test case that
+must pass for the feature to be considered complete.
 
 **Endpoint:** `POST /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`
 
@@ -96,28 +104,45 @@ Create 50 detailed work items that comprehensively cover all features in the spe
 [Brief description of what this feature does and why it matters]
 
 ## Category
-[functional OR style]
+[One of: Security, Navigation, Forms, Data Display, Styling, Accessibility, Performance,
+Integration, Error Handling, User Feedback, Search, Authentication, Authorization,
+Data Validation, API Endpoints, Database Operations, Real-time Features, Mobile Responsiveness,
+Cross-browser Compatibility, Edge Cases]
 
 ## Test Steps
-1. Navigate to [page/location]
-2. [Specific action to perform]
-3. [Another action]
-4. Verify [expected result]
-5. [Additional verification steps as needed]
+1. Navigate to [specific URL or page]
+2. [Specific action to perform - be very detailed]
+3. [Another specific action]
+4. Verify [exact expected result with visual details]
+5. Check console for errors (must be zero)
+6. Verify data comes from real database (no mock data)
+7. [Additional verification steps as needed - aim for 5-15 steps depending on complexity]
 
 ## Acceptance Criteria
-- [ ] [Specific criterion 1]
-- [ ] [Specific criterion 2]
-- [ ] [Specific criterion 3]
+- [ ] All test steps pass when executed in browser
+- [ ] Zero console errors
+- [ ] All displayed data comes from real database queries (NO hardcoded arrays or mock data)
+- [ ] Visual appearance matches design spec (proper contrast, spacing, alignment)
+- [ ] Feature works on mobile and desktop viewports
+- [ ] [Additional specific criteria for this feature]
+
+## Anti-Patterns to Avoid
+- [ ] NO hardcoded arrays (const items = [...])
+- [ ] NO fake variables (const mockUsers = [...])
+- [ ] NO setTimeout() simulating API delays
+- [ ] NO placeholder data in production code
 ```
 
 **Requirements for Work Items:**
-- Create 50 work items total covering all features in the spec
-- Mix of functional and style features (note category in description)
+- Create 400+ work items total for this complex application (scale based on app complexity)
+- Cover ALL features in the spec with granular test cases
+- Mix of functional and style features across 20+ categories
+- Vary test complexity: some narrow (2-5 steps), some comprehensive (10-15 steps)
 - Order by priority: foundational features get urgent/high, polish features get medium/low
-- Include detailed test steps in each work item description
+- Include extremely detailed test steps in each work item description
 - All work items start in "Todo" state
 - **IMPORTANT:** Add 1-second delay between each API call to respect rate limits
+- Each work item is a complete test specification that must pass
 
 **Priority Guidelines:**
 - urgent: Core infrastructure, database, basic UI layout
@@ -125,10 +150,24 @@ Create 50 detailed work items that comprehensively cover all features in the spe
 - medium: Secondary features, enhancements
 - low: Polish, nice-to-haves, edge cases
 
-**CRITICAL INSTRUCTION:**
+**CRITICAL INSTRUCTION - READ CAREFULLY:**
+
+IT IS CATASTROPHIC TO REMOVE OR EDIT WORK ITEMS IN FUTURE SESSIONS.
+
 Once created, work items can ONLY have their state changed (Todo → In Progress → Done).
-Never delete work items, never modify descriptions after creation.
-This ensures no functionality is missed across sessions.
+
+**NEVER:**
+- Delete work items
+- Archive work items
+- Modify work item descriptions or test steps after creation
+- Remove acceptance criteria
+- Skip work items because they seem "too hard" or "unnecessary"
+
+Features transition ONLY from incomplete (Todo/In Progress) to passing (Done) - never deleted,
+never modified. This preservation approach prevents functionality gaps across agent sessions.
+
+If a test seems wrong or redundant, mark it Done after verification - don't delete it.
+Every test case exists for a reason.
 
 ### NEXT TASK: Create Meta Work Item for Session Tracking
 
@@ -206,7 +245,7 @@ Create a file called `.plane_project.json` with the following information:
   "project_id": "[ID of the Plane project you created]",
   "project_name": "[Name of the project from app_spec.txt]",
   "meta_issue_id": "[ID of the META work item you created]",
-  "total_issues": 50,
+  "total_issues": "[actual number of work items created - should be 400+ for complex apps]",
   "notes": "Project initialized by initializer agent"
 }
 ```
@@ -221,6 +260,9 @@ the highest-priority features. Remember:
 - Use PATCH request to set state to "In Progress"
 - Work on ONE feature at a time
 - Test thoroughly before marking state as "Done"
+- ALL data must come from real database - NO mock data or hardcoded arrays
+- Zero console errors required
+- Verify through browser automation
 - Add a comment via POST to the work item with implementation notes
 - Commit your progress before session ends
 
@@ -262,19 +304,22 @@ Before your context fills up:
    ## Session 1 Complete - Initialization
 
    ### Accomplished
-   - Created 50 work items from app_spec.txt
+   - Created [N] work items from app_spec.txt (400+ for this complex application)
    - Set up project structure
    - Created init.sh
    - Initialized git repository
    - [Any features started/completed]
 
    ### Plane Status
-   - Total work items: 50
+   - Total work items: [N]
    - Done: X
    - In Progress: Y
    - Todo: Z
 
    ### Notes for Next Session
+   - ALL data must come from real database - NO mock data or hardcoded arrays
+   - Zero console errors required for all features
+   - Every feature must be verified through browser automation
    - [Any important context]
    - [Recommendations for what to work on next]
    ```
@@ -305,4 +350,4 @@ The next agent will continue from here with a fresh context window.
 quality over speed. Production-ready is the goal.
 
 **Rate Limiting:** Always add 1-second delays between API requests to respect
-the 60 requests/minute limit. Creating 50 work items will take about 1 minute.
+the 60 requests/minute limit. Creating 400+ work items will take about 7-8 minutes.

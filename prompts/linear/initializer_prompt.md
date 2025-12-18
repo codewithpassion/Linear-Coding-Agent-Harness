@@ -28,11 +28,19 @@ Before creating issues, you need to set up Linear:
 
    Save the returned project ID - you'll use it when creating issues.
 
-### CRITICAL TASK: Create Linear Issues
+### CRITICAL TASK: Create Linear Issues (Test-First Approach)
 
-Based on `app_spec.txt`, create Linear issues for each feature using the
-`mcp__linear__create_issue` tool. Create 50 detailed issues that
-comprehensively cover all features in the spec.
+Based on `app_spec.txt`, create Linear issues as detailed test specifications using the
+`mcp__linear__create_issue` tool.
+
+**ISSUE COUNT REQUIREMENTS:**
+- **Simple applications:** Minimum 150 issues
+- **Medium complexity:** Minimum 250 issues
+- **Complex applications (like Claude.ai clone):** Minimum 400+ issues
+
+The Claude.ai clone spec is COMPLEX - you should create **at least 400 detailed issues**
+that comprehensively cover all features in the spec. Each issue is a test case that
+must pass for the feature to be considered complete.
 
 **For each feature, create an issue with:**
 
@@ -50,27 +58,44 @@ priority: 1-4 based on importance (1=urgent/foundational, 4=low/polish)
 [Brief description of what this feature does and why it matters]
 
 ## Category
-[functional OR style]
+[One of: Security, Navigation, Forms, Data Display, Styling, Accessibility, Performance,
+Integration, Error Handling, User Feedback, Search, Authentication, Authorization,
+Data Validation, API Endpoints, Database Operations, Real-time Features, Mobile Responsiveness,
+Cross-browser Compatibility, Edge Cases]
 
 ## Test Steps
-1. Navigate to [page/location]
-2. [Specific action to perform]
-3. [Another action]
-4. Verify [expected result]
-5. [Additional verification steps as needed]
+1. Navigate to [specific URL or page]
+2. [Specific action to perform - be very detailed]
+3. [Another specific action]
+4. Verify [exact expected result with visual details]
+5. Check console for errors (must be zero)
+6. Verify data comes from real database (no mock data)
+7. [Additional verification steps as needed - aim for 5-15 steps depending on complexity]
 
 ## Acceptance Criteria
-- [ ] [Specific criterion 1]
-- [ ] [Specific criterion 2]
-- [ ] [Specific criterion 3]
+- [ ] All test steps pass when executed in browser
+- [ ] Zero console errors
+- [ ] All displayed data comes from real database queries (NO hardcoded arrays or mock data)
+- [ ] Visual appearance matches design spec (proper contrast, spacing, alignment)
+- [ ] Feature works on mobile and desktop viewports
+- [ ] [Additional specific criteria for this feature]
+
+## Anti-Patterns to Avoid
+- [ ] NO hardcoded arrays (const items = [...])
+- [ ] NO fake variables (const mockUsers = [...])
+- [ ] NO setTimeout() simulating API delays
+- [ ] NO placeholder data in production code
 ```
 
 **Requirements for Linear Issues:**
-- Create 50 issues total covering all features in the spec
-- Mix of functional and style features (note category in description)
+- Create 400+ issues total for this complex application (scale based on app complexity)
+- Cover ALL features in the spec with granular test cases
+- Mix of functional and style features across 20+ categories
+- Vary test complexity: some narrow (2-5 steps), some comprehensive (10-15 steps)
 - Order by priority: foundational features get priority 1-2, polish features get 3-4
-- Include detailed test steps in each issue description
+- Include extremely detailed test steps in each issue description
 - All issues start in "Todo" status (default)
+- Each issue is a complete test specification that must pass
 
 **Priority Guidelines:**
 - Priority 1 (Urgent): Core infrastructure, database, basic UI layout
@@ -78,10 +103,24 @@ priority: 1-4 based on importance (1=urgent/foundational, 4=low/polish)
 - Priority 3 (Medium): Secondary features, enhancements
 - Priority 4 (Low): Polish, nice-to-haves, edge cases
 
-**CRITICAL INSTRUCTION:**
+**CRITICAL INSTRUCTION - READ CAREFULLY:**
+
+IT IS CATASTROPHIC TO REMOVE OR EDIT ISSUES IN FUTURE SESSIONS.
+
 Once created, issues can ONLY have their status changed (Todo → In Progress → Done).
-Never delete issues, never modify descriptions after creation.
-This ensures no functionality is missed across sessions.
+
+**NEVER:**
+- Delete issues
+- Archive issues
+- Modify issue descriptions or test steps after creation
+- Remove acceptance criteria
+- Skip issues because they seem "too hard" or "unnecessary"
+
+Features transition ONLY from incomplete (Todo/In Progress) to passing (Done) - never deleted,
+never modified. This preservation approach prevents functionality gaps across agent sessions.
+
+If a test seems wrong or redundant, mark it Done after verification - don't delete it.
+Every test case exists for a reason.
 
 ### NEXT TASK: Create Meta Issue for Session Tracking
 
@@ -148,7 +187,7 @@ Create a file called `.linear_project.json` with the following information:
   "project_id": "[ID of the Linear project you created]",
   "project_name": "[Name of the project from app_spec.txt]",
   "meta_issue_id": "[ID of the META issue you created]",
-  "total_issues": 50,
+  "total_issues": "[actual number of issues created - should be 400+ for complex apps]",
   "notes": "Project initialized by initializer agent"
 }
 ```
@@ -175,19 +214,22 @@ Before your context fills up:
    ## Session 1 Complete - Initialization
 
    ### Accomplished
-   - Created 50 Linear issues from app_spec.txt
+   - Created [N] Linear issues from app_spec.txt (400+ for this complex application)
    - Set up project structure
    - Created init.sh
    - Initialized git repository
    - [Any features started/completed]
 
    ### Linear Status
-   - Total issues: 50
+   - Total issues: [N]
    - Done: X
    - In Progress: Y
    - Todo: Z
 
    ### Notes for Next Session
+   - ALL data must come from real database - NO mock data or hardcoded arrays
+   - Zero console errors required for all features
+   - Every feature must be verified through browser automation
    - [Any important context]
    - [Recommendations for what to work on next]
    ```

@@ -142,23 +142,126 @@ Read the issue title and reference `app_spec.txt` for detailed requirements:
 
 **CRITICAL:** You MUST verify features through the actual UI.
 
-Use browser automation tools:
-- `mcp__puppeteer__puppeteer_navigate` - Start browser and go to URL
-- `mcp__puppeteer__puppeteer_screenshot` - Capture screenshot
-- `mcp__puppeteer__puppeteer_click` - Click elements
-- `mcp__puppeteer__puppeteer_fill` - Fill form inputs
+Use browser automation tools (specific tools vary by browser provider - Chrome DevTools or Puppeteer):
+- Navigate to pages
+- Take screenshots
+- Click elements
+- Fill form inputs
+- Check console for errors
 
 **DO:**
 - Test through the UI with clicks and keyboard input
 - Take screenshots to verify visual appearance
 - Check for console errors in browser
 - Verify complete user workflows end-to-end
+- Verify all data comes from real database queries
 
 **DON'T:**
 - Only test with curl commands (backend testing alone is insufficient)
 - Use JavaScript evaluation to bypass UI (no shortcuts)
 - Skip visual verification
 - Mark issues closed without thorough verification
+
+### STEP 8.5: MANDATORY VERIFICATION CHECKLIST
+
+**Before closing ANY issue, you MUST verify ALL of these:**
+
+#### 1. Security Verification
+- [ ] Unauthorized users cannot access protected resources
+- [ ] User permissions are properly enforced
+- [ ] No sensitive data leaked in responses or UI
+- [ ] API keys and secrets not exposed in client code
+
+#### 2. Real Data Verification (CRITICAL!)
+- [ ] ALL displayed data comes from actual database queries
+- [ ] NO hardcoded arrays pretending to be data (e.g., `const messages = [...]`)
+- [ ] NO fake variables simulating backend (e.g., `const mockUsers = [...]`)
+- [ ] NO setTimeout() to simulate API delays
+- [ ] Data persists across page refreshes
+- [ ] Data survives server restarts
+
+#### 3. Navigation Verification
+- [ ] All links work correctly
+- [ ] Back button works as expected
+- [ ] URL updates appropriately
+- [ ] No broken routes or 404 errors
+
+#### 4. Integration Verification
+- [ ] Frontend successfully communicates with backend
+- [ ] Database operations complete successfully
+- [ ] External API calls work (if applicable)
+- [ ] Error states handled gracefully
+
+#### 5. Console Errors
+- [ ] **ZERO console errors** (this is mandatory, not optional)
+- [ ] No warnings about React keys, deprecated APIs, etc.
+- [ ] No failed network requests
+- [ ] No unhandled promise rejections
+
+#### 6. Visual Quality
+- [ ] Text is readable (no white-on-white, proper contrast)
+- [ ] No layout overflow or broken spacing
+- [ ] Buttons and clickable elements have proper hover states
+- [ ] Loading states display correctly
+- [ ] Error messages display properly
+- [ ] Responsive on mobile and desktop
+
+**If ANY item fails, DO NOT close the issue. Fix it first.**
+
+### STEP 8.6: MOCK DATA DETECTION
+
+**MANDATORY:** Before closing an issue, search the codebase for forbidden patterns.
+
+Run searches for common mock data patterns:
+
+```bash
+# Search for hardcoded arrays that might be mock data
+grep -r "const.*=.*\[" src/ | grep -v node_modules | grep -v ".test."
+
+# Search for variables with "mock", "fake", "dummy", "sample" in name
+grep -ri "mock\|fake\|dummy\|sample" src/ | grep -v node_modules | grep -v ".test."
+
+# Search for setTimeout used to simulate delays
+grep -r "setTimeout" src/ | grep -v node_modules | grep -v ".test."
+```
+
+**Review results and confirm:**
+- Any arrays are legitimate constants (e.g., dropdown options), not data that should come from the database
+- No variables are pretending to be backend responses
+- No setTimeout is simulating API delays
+
+**Common mock data patterns to eliminate:**
+```javascript
+// ❌ FORBIDDEN - Hardcoded messages
+const messages = [
+  { id: 1, text: "Hello", user: "John" },
+  { id: 2, text: "Hi there", user: "Jane" }
+];
+
+// ❌ FORBIDDEN - Fake user data
+const users = [
+  { name: "Alice", email: "alice@example.com" },
+  { name: "Bob", email: "bob@example.com" }
+];
+
+// ❌ FORBIDDEN - Simulated delay
+setTimeout(() => {
+  setLoading(false);
+  setData(mockData);
+}, 1000);
+
+// ✅ CORRECT - Data from database
+const messages = await db.query("SELECT * FROM messages");
+
+// ✅ CORRECT - Legitimate constants
+const PRIORITY_OPTIONS = ["low", "medium", "high"];
+```
+
+**If you find mock data:**
+1. Replace it with real database queries
+2. Update the implementation
+3. Re-test through browser automation
+4. Only then close the issue
 
 ### STEP 9: CLOSE THE ISSUE (CAREFULLY!)
 
@@ -361,17 +464,25 @@ bd info --json
 
 ## IMPORTANT REMINDERS
 
-**Your Goal:** Production-quality application with all Beads issues closed
+**Your Goal:** Production-quality application with all Beads issues closed (400+ for this complex app)
 
 **This Session's Goal:** Make meaningful progress with clean handoff
 
 **Priority:** Fix regressions before implementing new features
 
-**Quality Bar:**
-- Zero console errors
+**Quality Bar (ALL MANDATORY):**
+- **ZERO console errors** (not negotiable)
+- **ALL data from real database** - NO mock data, hardcoded arrays, or fake variables
 - Polished UI matching the design in app_spec.txt
 - All features work end-to-end through the UI
 - Fast, responsive, professional
+- Complete verification checklist (Step 8.5) passing
+- Mock data detection (Step 8.6) completed
+
+**Mock Data is Catastrophic:**
+If you implement features with hardcoded data, future agents will assume the feature
+works and move on. The application will appear complete but be non-functional.
+ALWAYS use real database queries.
 
 **Context is finite.** You cannot monitor your context usage, so err on the side
 of ending sessions early with good handoff notes. The next agent will continue.

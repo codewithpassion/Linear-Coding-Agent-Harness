@@ -42,6 +42,13 @@
       - Backend code goes in /server directory
       - Install backend dependencies as needed
     </environment_setup>
+    <testing_requirements>
+      - ALL data must come from real database - NO mock data, hardcoded arrays, or fake variables
+      - NO simulated API delays or fake loading states
+      - All features must be verified through browser automation
+      - Zero console errors required
+      - Complete end-to-end user workflows required for each feature
+    </testing_requirements>
   </prerequisites>
 
   <core_features>
@@ -649,6 +656,7 @@
       - Project organization clear and useful
       - Image upload and display working
       - All CRUD operations functional
+      - ALL DATA from real database (ZERO mock data, hardcoded arrays, or fake variables)
     </functionality>
 
     <user_experience>
@@ -667,6 +675,8 @@
       - Optimized database queries
       - Efficient streaming implementation
       - Comprehensive testing coverage
+      - ZERO console errors in browser
+      - All features verified through browser automation
     </technical_quality>
 
     <design_polish>
@@ -677,5 +687,14 @@
       - Professional, polished appearance
       - Dark mode fully implemented
     </design_polish>
+
+    <forbidden_patterns>
+      - NO hardcoded arrays pretending to be database data (const messages = [...])
+      - NO fake variables simulating backend responses (const fakeUsers = [...])
+      - NO setTimeout() to simulate API delays
+      - NO mock data in production code
+      - NO skipping database integration with placeholder data
+      - ALL displayed data MUST come from actual database queries
+    </forbidden_patterns>
   </success_criteria>
 </project_specification>
